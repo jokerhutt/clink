@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = ""
+    voice_tts_model: str = ""
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=".env"
