@@ -5,6 +5,10 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "dspy>=3.2.1",
     "fastapi>=0.136.3",
+    "hikari>=2.1.1",
+    "hikari-lightbulb<3.0.0",
     "hypercorn>=0.18.0",
+    "pydantic>=2.13.4",
 ]
