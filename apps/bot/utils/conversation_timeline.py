@@ -31,6 +31,25 @@ class ConversationTimelineBuilder:
         formatted = f"[id: {message.id}] [{created_at_relative}]  {author}: {content}"
         return formatted
 
+    def filter_relevant_messages(self, timeline: str, relevant_ids: list[str]) -> str:
+        if not relevant_ids :
+            return timeline
+
+        relevant_set = set(relevant_ids)
+        filtered_lines = []
+
+        for line in timeline.split("\n"):
+            for msg_id in relevant_set:
+                if f"[ID: {msg_id}]" in line:
+                    filtered_lines.append(line)
+                    break
+                else:
+                    if line.startswith("===") or not line.strip():
+                        filtered_lines.append(line)
+
+                return "\n".join(filtered_lines)
+            
+
     async def build(self, channel_id: hikari.Snowflake, trigger_message_id: hikari.Snowflake | None = None, limit: int = 10) -> str :
 
         # Get Channel
