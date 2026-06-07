@@ -6,6 +6,8 @@ from pydantic import BaseModel
 
 from typing import TYPE_CHECKING, Awaitable, Callable
 
+from apps.bot.services.research.status_reporter import ResearchEventHandler
+
 if TYPE_CHECKING:
     from apps.bot.services.research.brave import BraveSearch
     from apps.bot.services.research.jina import JinaReader
@@ -14,8 +16,8 @@ if TYPE_CHECKING:
 class ResearchDeps:
     brave: BraveSearch
     jina: JinaReader
+    research_handler: ResearchEventHandler | None
     search_count: int = 0
-    on_event: Callable[[str, str | None], Awaitable[None]] | None = None
 
 class PageContent(BaseModel):
     url: str

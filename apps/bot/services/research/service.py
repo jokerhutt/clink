@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable
+import json
 from pydantic_ai import Agent, AgentRunResultEvent, RunContext
 
 from apps.bot.services.research.brave import BraveSearch
@@ -6,9 +6,9 @@ from apps.bot.services.research.jina import JinaReader
 
 from pydantic_ai.messages import (
     FunctionToolCallEvent,
-    FunctionToolResultEvent,
 )
 
+from apps.bot.services.research.status_reporter import ResearchEventHandler
 from apps.llm_config import get_pydantic_ai_model_name
 
 from .models import ResearchDeps, SearchResult
@@ -49,12 +49,12 @@ async def research(
     prompt: str,
     brave: BraveSearch,
     jina: JinaReader,
-    on_research_event: Callable[[str, str | None], Awaitable[None]] | None = None,
+    research_handler: ResearchEventHandler | None = None
 ) -> str:
     deps = ResearchDeps(
         brave=brave,
         jina=jina,
-        on_event = on_research_event
+        research_handler = research_handler
     )
 
     final_output: str | None = None
@@ -65,23 +65,43 @@ async def research(
     ) as stream:
         async for event in stream:
             if isinstance(event, FunctionToolCallEvent):
-                if deps.on_event is None:
+                if deps.research_handler is None:
                     continue
                 tool_name = event.part.tool_name
                 if tool_name == "search":
                     query = prompt
-                    await deps.on_event("search_started", query)
-                elif tool_name == "read":
-                    await deps.on_event("read_finished", None)
+                    args = event.part.args
 
-            elif isinstance(event, FunctionToolResultEvent):
-                if deps.on_event is None:
-                    continue
-                tool_name = event.part.tool_name
-                if tool_name == "search":
-                    await deps.on_event("Search complete.")
+                    if isinstance(args, dict):
+                        query = args.get("query", prompt)
+                    elif isinstance(args, str):
+                        try:
+                            parsed_args = json.loads(args)
+                        except json.JSONDecodeError:
+                            parsed_args = None
+
+                        if isinstance(parsed_args, dict):
+                            query = parsed_args.get("query", prompt)
+
+                    await deps.research_handler.search_started(query)
                 elif tool_name == "read":
-                    await deps.on_event("Source read.")
+                    url = None
+                    args = event.part.args
+
+                    if isinstance(args, dict):
+                        url = args.get("url")
+                    elif isinstance(args, str):
+                        try:
+                            parsed_args = json.loads(args)
+                        except json.JSONDecodeError:
+                            parsed_args = None
+
+                        if isinstance(parsed_args, dict):
+                            url = parsed_args.get("url")
+                    
+                    if isinstance(url, str):
+                        await deps.research_handler.reading(url)
+
             elif isinstance(event, AgentRunResultEvent):
                 final_output = event.result.output
 

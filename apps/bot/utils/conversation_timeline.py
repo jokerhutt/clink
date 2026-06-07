@@ -39,15 +39,16 @@ class ConversationTimelineBuilder:
         filtered_lines = []
 
         for line in timeline.split("\n"):
+            if line.startswith("===") or not line.strip():
+                filtered_lines.append(line)
+                continue
+
             for msg_id in relevant_set:
-                if f"[ID: {msg_id}]" in line:
+                if f"[id: {msg_id}]" in line:
                     filtered_lines.append(line)
                     break
-                else:
-                    if line.startswith("===") or not line.strip():
-                        filtered_lines.append(line)
 
-                return "\n".join(filtered_lines)
+        return "\n".join(filtered_lines)
             
 
     async def build(self, channel_id: hikari.Snowflake, trigger_message_id: hikari.Snowflake | None = None, limit: int = 10) -> str :
@@ -110,7 +111,6 @@ class ConversationTimelineBuilder:
 
 
         
-
 
 
 

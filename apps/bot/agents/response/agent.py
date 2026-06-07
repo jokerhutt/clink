@@ -8,6 +8,7 @@ from apps.bot.agents.response.models import ResponseAgentOutput
 from apps.bot.agents.response.signatures import ResponseSignature
 
 from apps.bot.agents.response.tools import create_response_tools
+from apps.bot.services.research.status_reporter import ResearchEventHandler, ResearchStatusReporter
 from apps.llm_config import get_llm_model
 from apps.shared.config import get_settings
 
@@ -31,11 +32,11 @@ class ResponseAgent(BaseAgent):
         intent: str,
         context_summary: str,
         me: dict[str, Any],
-        on_research_event:  Callable[[str, str | None], Awaitable[None]] | None = None,
+        research_handler: ResearchEventHandler
     ) -> ResponseAgentOutput:
 
         tools = create_response_tools(
-            on_research_event = on_research_event
+            research_handler = research_handler
         )
 
         react = dspy.ReAct(

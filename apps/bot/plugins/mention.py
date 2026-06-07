@@ -8,6 +8,7 @@ from logging import getLogger
 
 from apps.bot.agents.classification.agent import get_classification_agent
 from apps.bot.agents.response.agent import get_response_agent
+from apps.bot.services.research.status_reporter import ResearchEventHandler, ResearchStatusReporter
 from apps.bot.utils import messages
 from apps.bot.utils.conversation_timeline import ConversationTimelineBuilder
 from apps.bot.utils.messages import build_me_info
@@ -119,35 +120,7 @@ async def handle_mention(event: hikari.GuildMessageCreateEvent) -> None:
             )
             return
 
-        status_message: hikari.Message | None = None
-
-        query: str | None = None
-        read_count = 0
-
-        async def on_research_event(event_type: str, value: str | None = None):
-
-            nonlocal query, read_count, status_message
-
-            if event_type == "search_started":
-                query = value
-            elif event_type == "read_finished":
-                read_count += 1
-
-            content = ""
-
-            if query:
-                content = f"> -# Searching the web: {query}"
-
-                if read_count > 0:
-                    content += (f"\n> -# Read {read_count} result(s)")
-
-            if status_message is None:
-                status_message = await bot.rest.create_message(
-                    channel = channel_id,
-                    content = content
-                )
-            else :
-                await bot.rest.edit_message(channel_id, status_message.id, content)
+        research_handler = ResearchStatusReporter(bot = bot, channel_id = channel_id)
 
 
         response_agent = get_response_agent()
@@ -165,7 +138,7 @@ async def handle_mention(event: hikari.GuildMessageCreateEvent) -> None:
             intent = classification.intent,
             context_summary = classification.context_summary,
             me = me_info,
-            on_research_event = on_research_event
+            research_handler = research_handler
         )
 
         await bot.rest.create_message(

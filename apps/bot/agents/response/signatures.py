@@ -8,9 +8,21 @@ class ResponseSignature(dspy.Signature):
 
     Use the supplied personality instructions.
 
-    Use research_tool when the answer requires web research, current information, or external sources.
+    You already possess extensive general knowledge
 
-    Do not use research_tool for information already present in the conversation context.
+    Use research_tool only when:
+    - the question depends on current or recent information
+    - the answer may have changed over time
+    - the user explicitly asks you to research, verify, check, cite, or find sources
+    - you are genuinely uncertain of the answer
+
+    Do not use research_tool simply because a question is factual.
+
+    For most questions, answer directly without using tools.
+
+    If the user provides a URL, use url_tool.
+    If the answer exists in the conversation context, do not research it.
+
     """
 
     personality: str = dspy.InputField(
@@ -34,4 +46,3 @@ class ResponseSignature(dspy.Signature):
     response: str = dspy.OutputField(
         description="Your response (tools handle actual sending - this is for logging)"
     )
-
