@@ -16,6 +16,33 @@ logger = getLogger()
 
 plugin = lightbulb.Plugin("mention")
 
+@plugin.listener(hikari.GuildMessageCreateEvent)
+async def on_message_create(event: hikari.GuildMessageCreateEvent) -> None:
+
+    # Ignore bot messages
+    if event.message.author.is_bot:
+        return
+
+    # Ignore messages in DMs
+    if not event.guild_id:
+        return
+
+    # Get bot user for mention checking
+    bot_user = plugin.bot.get_me()
+    if not bot_user:
+        return
+
+    if not event.message.user_mentions_ids :
+        return
+
+    # Check if bot is mentioned
+    is_mentioned = bot_user.id in event.message.user_mentions_ids
+
+    if is_mentioned:
+        # Handle direct @mention with multi-agent pipeline
+        await handle_mention(event)
+
+
 def is_bot_mention(message: hikari.Message, content: str | None, bot_id: hikari.Snowflake) -> bool:
     if not message.user_mentions_ids :
         return False
@@ -69,6 +96,7 @@ async def handle_mention(event: hikari.GuildMessageCreateEvent) -> None:
         logger.debug(f"[{request_id}] Building conversation context...")
         timeline_builder = ConversationTimelineBuilder(bot, guild_id = guild_id)
         conversation_timeline = await timeline_builder.build(channel_id = channel_id, trigger_message_id= trigger_message_id, limit = 20)
+        logger.info("TIMELINE:\n%s", conversation_timeline)
 
         classification_agent = get_classification_agent()
 
@@ -83,7 +111,6 @@ async def handle_mention(event: hikari.GuildMessageCreateEvent) -> None:
         logger.info(
             f"[{request_id}] Classification result: should_respond={classification.should_respond}, "
             f"intent='{classification.intent[:80]}...', "
-            f"matched_watcher={classification.matched_watcher_id}"
         )
 
         if not classification.should_respond:
@@ -114,10 +141,28 @@ async def handle_mention(event: hikari.GuildMessageCreateEvent) -> None:
             content = result.response
         )
 
-    except Exception :
+    except Exception as e:
+        logger.exception(
+            f"[{request_id}] Error while processing mention: {e}"
+        )
+
+        try:
+            await bot.rest.create_message(
+                channel=channel_id,
+                content="Sorry, something went wrong while processing your request."
+            )
+
+        except Exception:
+            logger.exception(
+                f"[{request_id}] Failed to send error message"
+            )
 
 
-    
+def load(bot: lightbulb.BotApp) -> None:
+    bot.add_plugin(plugin)
+
+def unload(bot: lightbulb.BotApp) -> None:
+    bot.remove_plugin(plugin) 
 
 
 

@@ -4,7 +4,7 @@ from logging import getLogger
 from apps.bot.agents.classification import models, signatures
 
 logger = getLogger(__name__)
-CLASSIFICATION_LM = get_llm_model("fast")
+CLASSIFICATION_LM = get_llm_model()
 
 class ClassificationAgent() :
     def __init__(self):
@@ -25,18 +25,20 @@ class ClassificationAgent() :
                     bot_id = bot_id
                 )
 
-            # Validate that shit
-            parsed = models.ClassificationResult.model_validate(result)
+            logger.info("RAW CLASSIFICATION: %s", result)
+            logger.info("SHOULD RESPOND: %s", result.should_respond)
+            logger.info("INTENT: %s", result.intent)
+
 
             # Estimate with tokens (about 4 tokens per word)
             estimated_tokens = self._estimate_token_usage(conversation_timeline)
 
             # Package it nicely
             res = models.ClassificationResult(
-                should_respond=parsed.should_respond,
-                intent=parsed.intent,
-                relevant_message_ids=parsed.relevant_message_ids,
-                context_summary=parsed.context_summary,
+                should_respond=result.should_respond,
+                intent=result.intent,
+                relevant_message_ids=result.relevant_message_ids,
+                context_summary=result.context_summary,
                 tokens_used = estimated_tokens
             )
 

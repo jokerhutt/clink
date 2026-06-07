@@ -1,113 +1,102 @@
-"""Centralized LLM configuration for the project.
+"""Centralized LLM configuration for the project."""
 
-This module provides a consistent way to configure LLM models across the entire
-project using environment variables.
-"""
+from typing import Any
 
-import os
-import dotenv
 import dspy
 from google import genai
-from typing import Any, Optional
+
+from apps.shared.config import get_settings
 
 
-def get_llm_model(model_type: str = "fast") -> dspy.LM:
-    model_name, _ = get_model_name(model_type)
-    api_key = _get_api_key_for_model(model_name)
-    cache = False if model_type in ("fast", "default") else True
-    return dspy.LM(model=model_name, api_key=api_key, cache=cache)
+_PROVIDER_ALIASES = {
+    "google": "google",
+    "gemini": "google",
+    "openai": "openai",
+    "anthropic": "anthropic",
+}
+
+_DSPY_PROVIDER_PREFIXES = {
+    "google": "gemini",
+    "openai": "openai",
+    "anthropic": "anthropic",
+}
 
 
-def get_model_info(model_type: str = "fast") -> dict[str, Any]:
-    model_name, env_var = get_model_name(model_type)
-    provider = _get_provider_from_model(model_name)
-    api_key = _get_api_key_for_model(model_name)
+def get_llm_model(*, cache: bool = False) -> dspy.LM:
+    provider = get_provider_name()
+    return dspy.LM(
+        model=get_dspy_model_name(),
+        api_key=get_api_key(provider),
+        cache=cache,
+    )
 
+
+def get_model_info() -> dict[str, Any]:
+    provider = get_provider_name()
     return {
-        "model_name": model_name,
+        "model_name": get_model_name(),
         "provider": provider,
-        "has_api_key": bool(api_key),
-        "env_var": env_var,
+        "has_api_key": bool(get_api_key(provider)),
+        "env_vars": ["LLM_PROVIDER", "LLM_MODEL"],
     }
 
-def get_model_name(model_type: str = "fast") -> tuple[str, str]:
-    if model_type == "judge":
-        return (
-            os.getenv(
-                "LLM_JUDGE_MODEL", 
-                "gemini/gemini-3.1-flash-lite-preview"
-            ),
-            "LLM_JUDGE_MODEL"
-        )
-    else :
-        return (
-            os.getenv(
-                "LLM_FAST_MODEL",
-                "gemini/gemini-3.1-flash-lite-preview"
-            ),
-            "LLM_FAST_MODEL"
-        )
+
+def get_model_name() -> str:
+    return get_settings().llm_model.strip()
+
+
+def get_provider_name() -> str:
+    raw_provider = get_settings().llm_provider.strip().lower()
+    try:
+        return _PROVIDER_ALIASES[raw_provider]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported LLM_PROVIDER: {get_settings().llm_provider}") from exc
+
+
+def get_dspy_model_name() -> str:
+    provider = get_provider_name()
+    return f"{_DSPY_PROVIDER_PREFIXES[provider]}/{get_model_name()}"
+
+
+def get_pydantic_ai_model_name() -> str:
+    return f"{get_provider_name()}:{get_model_name()}"
+
 
 def get_gemini_client_for_tts(model_name: str | None = None):
     """Return Gemini client for TTS (not handled by DSPy)."""
     if model_name is None:
-        from apps.shared.config import get_settings
+        settings = get_settings()
+        model_name = settings.voice_tts_model or settings.llm_model
 
-        model_name = get_settings().voice_tts_model
-    api_key = os.getenv("GEMINI_API_KEY") or dotenv.get_key(".env", "GEMINI_API_KEY")
+    api_key = get_settings().google_api_key or get_settings().gemini_api_key
     if model_name.startswith("gemini/"):
         model_name = model_name.removeprefix("gemini/")
     return genai.Client(api_key=api_key), model_name
 
 
-def _get_provider_from_model(model_name: str) -> str:
-    """Determine provider from model name."""
-    if model_name.startswith("gpt-") or model_name.startswith("openai/"):
-        return "openai"
-    elif model_name.startswith("gemini/"):
-        return "gemini"
-    elif model_name.startswith("claude-"):
-        return "anthropic"
-    else:
-        return "unknown"
-
-
-def _get_api_key_for_model(model_name: str) -> Optional[str]:
-
-    provider = _get_provider_from_model(model_name)
-
+def get_api_key(provider: str | None = None) -> str | None:
+    settings = get_settings()
+    provider = provider or get_provider_name()
     if provider == "openai":
-        return os.getenv("OPENAI_API_KEY") or dotenv.get_key(".env", "OPENAI_API_KEY")
-    elif provider == "gemini":
-        return os.getenv("GEMINI_API_KEY") or dotenv.get_key(".env", "GEMINI_API_KEY")
-    elif provider == "anthropic":
-        return os.getenv("ANTHROPIC_API_KEY") or dotenv.get_key(".env", "ANTHROPIC_API_KEY")
-    else:
-        return (os.getenv("OPENAI_API_KEY") or
-                os.getenv("GEMINI_API_KEY") or
-                os.getenv("ANTHROPIC_API_KEY") or
-                dotenv.get_key(".env", "OPENAI_API_KEY") or
-                dotenv.get_key(".env", "GEMINI_API_KEY") or
-                dotenv.get_key(".env", "ANTHROPIC_API_KEY"))
+        return settings.openai_api_key
+    if provider == "google":
+        return settings.google_api_key or settings.gemini_api_key
+    if provider == "anthropic":
+        return settings.anthropic_api_key
+    raise ValueError(f"Unsupported LLM provider: {provider}")
 
 
-def validate_model_config(model_type: str = "fast") -> tuple[bool, str]:
-    """Validate that model configuration is complete.
-    
-    Args:
-        model_type: Type of model to validate
-        
-    Returns:
-        (is_valid, error_message) tuple
-    """
+def validate_model_config() -> tuple[bool, str]:
+    """Validate that model configuration is complete."""
     try:
-        info = get_model_info(model_type)
-        
+        info = get_model_info()
         if not info["has_api_key"]:
-            provider_key = f"{info['provider'].upper()}_API_KEY"
+            provider_key = (
+                "GOOGLE_API_KEY or GEMINI_API_KEY"
+                if info["provider"] == "google"
+                else f"{info['provider'].upper()}_API_KEY"
+            )
             return False, f"Missing {provider_key} in .env for model {info['model_name']}"
-        
         return True, ""
     except Exception as e:
         return False, f"Configuration error: {e}"
-

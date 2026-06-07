@@ -1,11 +1,14 @@
-
+from __future__ import annotations
 
 from dataclasses import dataclass
 import httpx
 from pydantic import BaseModel
 
-from apps.bot.services.research.brave import BraveSearch
-from apps.bot.services.research.jina import JinaReader
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from apps.bot.services.research.brave import BraveSearch
+    from apps.bot.services.research.jina import JinaReader
 
 @dataclass
 class ResearchDeps:

@@ -24,7 +24,7 @@ class ConversationTimelineBuilder:
         seconds = int((datetime.now(UTC) - created_at).total_seconds())
         return seconds < 300
 
-    def _format_message(self, message: hikari.Message) -> :
+    def _format_message(self, message: hikari.Message) -> str :
         author = message.author.display_name or message.author.username or "unknown user"
         content = message.content or ""
         created_at_relative = self._format_relative_time(message.created_at)

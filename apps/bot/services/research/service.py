@@ -2,10 +2,11 @@ from pydantic_ai import Agent, RunContext
 
 from apps.bot.services.research.brave import BraveSearch
 from apps.bot.services.research.jina import JinaReader
+from apps.llm_config import get_pydantic_ai_model_name
 
 from .models import ResearchDeps, SearchResult
 
-RESEARCH_MODEL = "openai:gpt-5-mini"
+RESEARCH_MODEL = get_pydantic_ai_model_name()
 
 _research_agent = Agent(
     RESEARCH_MODEL,

@@ -1,5 +1,4 @@
 
-
 import os
 from typing import Any
 import dspy
@@ -9,12 +8,8 @@ from apps.bot.agents.response.models import ResponseAgentOutput
 from apps.bot.agents.response.signatures import ResponseSignature
 
 from apps.bot.agents.response.tools import create_response_tools
-from apps.bot.services.research.brave import BraveSearch
-from apps.bot.services.research.jina import JinaReader
-from apps.bot.services.research.service import research
-
-
-RESPONSE_MODEL = "openai:gpt-5-mini"
+from apps.llm_config import get_llm_model
+from apps.shared.config import get_settings
 
 DEFAULT_PERSONALITY = """
 You are a Discord bot responding to users.
@@ -22,9 +17,10 @@ You are a Discord bot responding to users.
 Be concise and helpful.
 """
 
-PERSONALITY = os.getenv(
+RESPONSE_LM = get_llm_model()
+PERSONALITY = get_settings().bot_personality or os.getenv(
     "CUSTOM_PERSONALITY",
-    DEFAULT_PERSONALITY
+    DEFAULT_PERSONALITY,
 )
 
 class ResponseAgent(BaseAgent):
@@ -44,13 +40,14 @@ class ResponseAgent(BaseAgent):
             tools = tools
         )
 
-        result = await react.acall(
-            personality = PERSONALITY,
-            relevant_messages = relevant_messages,
-            intent = intent,
-            context_summary = context_summary,
-            me = me,
-        )
+        with dspy.context(lm=RESPONSE_LM):
+            result = await react.acall(
+                personality = PERSONALITY,
+                relevant_messages = relevant_messages,
+                intent = intent,
+                context_summary = context_summary,
+                me = me,
+            )
 
         tokens_used = self.estimate_tokens(result.response)
 
