@@ -15,7 +15,7 @@ class ResearchDeps:
     brave: BraveSearch
     jina: JinaReader
     search_count: int = 0
-    on_event: Callable[[str], Awaitable[None]] | None = None
+    on_event: Callable[[str, str | None], Awaitable[None]] | None = None
 
 class PageContent(BaseModel):
     url: str

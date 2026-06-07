@@ -49,7 +49,7 @@ async def research(
     prompt: str,
     brave: BraveSearch,
     jina: JinaReader,
-    on_research_event: Callable[[str], Awaitable[None]] | None = None,
+    on_research_event: Callable[[str, str | None], Awaitable[None]] | None = None,
 ) -> str:
     deps = ResearchDeps(
         brave=brave,
@@ -69,9 +69,10 @@ async def research(
                     continue
                 tool_name = event.part.tool_name
                 if tool_name == "search":
-                    await deps.on_event("Searching the web...")
+                    query = prompt
+                    await deps.on_event("search_started", query)
                 elif tool_name == "read":
-                    await deps.on_event("Reading a source...")
+                    await deps.on_event("read_finished", None)
 
             elif isinstance(event, FunctionToolResultEvent):
                 if deps.on_event is None:

@@ -31,7 +31,7 @@ class ResponseAgent(BaseAgent):
         intent: str,
         context_summary: str,
         me: dict[str, Any],
-        on_research_event: Callable[[str], Awaitable[None]] | None = None,
+        on_research_event:  Callable[[str, str | None], Awaitable[None]] | None = None,
     ) -> ResponseAgentOutput:
 
         tools = create_response_tools(

@@ -9,7 +9,7 @@ from apps.bot.services.research.service import research
 from apps.shared.httpx_client import get_http_client
 
 
-def create_response_tools(on_research_event: Callable[[str], Awaitable[None]] | None = None,) :
+def create_response_tools(on_research_event:  Callable[[str, str | None], Awaitable[None]] | None = None) :
     client = get_http_client()
 
     brave_api_key = os.environ.get("BRAVE_SEARCH_API_KEY", "")
