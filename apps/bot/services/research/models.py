@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import httpx
 from pydantic import BaseModel
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Awaitable, Callable
 
 if TYPE_CHECKING:
     from apps.bot.services.research.brave import BraveSearch
@@ -15,6 +15,7 @@ class ResearchDeps:
     brave: BraveSearch
     jina: JinaReader
     search_count: int = 0
+    on_event: Callable[[str], Awaitable[None]] | None = None
 
 class PageContent(BaseModel):
     url: str

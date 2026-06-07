@@ -9,17 +9,28 @@ class JinaReader:
 
     async def read(self, url: str) -> str:
 
-        headers = {}
+        print("READ_URL:", url)
 
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
+        try :
+            headers = {}
 
-        resp = await self.client.get(
-            f"https://r.jina.ai/http://{url.removeprefix('https://').removeprefix('http://')}"
-        )
+            if self.api_key:
+                headers["Authorization"] = f"Bearer {self.api_key}"
 
-        resp.raise_for_status()
+            resp = await self.client.get(
+                f"https://r.jina.ai/http://{url.removeprefix('https://').removeprefix('http://')}",
+                headers=headers,
+                timeout=30.0
+            )
 
-        return resp.text
+            resp.raise_for_status()
+
+            print(resp.text[:1000])
+
+            return resp.text
+
+        except Exception as e:
+            print("JINA ERROR:", repr(e))
+            raise
 
         

@@ -1,6 +1,6 @@
 
 import os
-from typing import Any
+from typing import Any, Awaitable, Callable
 import dspy
 
 from apps.bot.agents.base import BaseAgent
@@ -31,9 +31,12 @@ class ResponseAgent(BaseAgent):
         intent: str,
         context_summary: str,
         me: dict[str, Any],
+        on_research_event: Callable[[str], Awaitable[None]] | None = None,
     ) -> ResponseAgentOutput:
 
-        tools = create_response_tools()
+        tools = create_response_tools(
+            on_research_event = on_research_event
+        )
 
         react = dspy.ReAct(
             ResponseSignature,
@@ -48,6 +51,10 @@ class ResponseAgent(BaseAgent):
                 context_summary = context_summary,
                 me = me,
             )
+
+        print("DSPY RESULT:")
+        print(result)
+        print(vars(result))
 
         tokens_used = self.estimate_tokens(result.response)
 

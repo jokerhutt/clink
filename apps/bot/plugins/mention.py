@@ -119,6 +119,18 @@ async def handle_mention(event: hikari.GuildMessageCreateEvent) -> None:
             )
             return
 
+        
+        status_message = await bot.rest.create_message(
+            channel=channel_id,
+            content="> -# Thinking..."
+        )
+
+        async def on_research_event(text: str) :
+            await bot.rest.create_message(
+                    channel_id,
+                    f"> -# {text}"
+            )
+
         response_agent = get_response_agent()
 
         # keep only relevant messages
@@ -133,7 +145,8 @@ async def handle_mention(event: hikari.GuildMessageCreateEvent) -> None:
             relevant_messages=relevant_messages,
             intent = classification.intent,
             context_summary = classification.context_summary,
-            me = me_info
+            me = me_info,
+            on_research_event = on_research_event
         )
 
         await bot.rest.create_message(
