@@ -2,6 +2,20 @@ import dspy
 
 class ClassificationSignature(dspy.Signature):
 
+    """
+
+    Analyze a conversation timeline and determine whether the bot should respond to the trigger message.
+
+    The trigger message is the message identified by trigger_message_id.
+
+    Respond only when the trigger message is directed at the bot and requires a response.
+
+    Do not respond when users are merely discussing the bot, mentioning the bot in passing, or when no response is needed.
+
+    Identify the user's intent, the messages relevant to that intent, and summarize the relevant context.
+
+    """
+
     # Inputs
     conversation_timeline: str = dspy.InputField(
         description="Chronological conversation timeline with message IDs, timestamps, authors, and content"
