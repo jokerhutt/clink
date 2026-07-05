@@ -13,6 +13,8 @@ from apps.bot.utils import messages
 from apps.bot.utils.conversation_timeline import ConversationTimelineBuilder
 from apps.bot.utils.messages import build_me_info
 
+from apps.shared.config import get_settings
+
 logger = getLogger()
 
 plugin = lightbulb.Plugin("mention")
@@ -101,10 +103,13 @@ async def handle_mention(event: hikari.GuildMessageCreateEvent) -> None:
 
         classification_agent = get_classification_agent()
 
+        settings = get_settings()
+
         classification = await classification_agent.classify(
             conversation_timeline=conversation_timeline,
             trigger_message_id = str(trigger_message_id),
-            bot_id = str(bot_id)
+            bot_id = str(bot_id),
+            enable_filter = settings.enable_filter
         )
 
         total_tokens += classification.tokens_used
@@ -114,7 +119,9 @@ async def handle_mention(event: hikari.GuildMessageCreateEvent) -> None:
             f"intent='{classification.intent[:80]}...', "
         )
 
-        if not classification.should_respond:
+        if not settings.enable_filter :
+            logger.debug("Filter disabled, skipping condition")
+        elif not classification.should_respond:
             logger.info(
                 f"[{request_id}] Classification decided NOT to respond - exiting pipeline"
             )

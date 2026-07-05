@@ -14,7 +14,7 @@ class ClassificationAgent() :
         return len(conversation_timeline) // 4 + 100
 
 
-    async def classify(self, conversation_timeline: str, trigger_message_id: str, bot_id: str) -> models.ClassificationResult:
+    async def classify(self, conversation_timeline: str, trigger_message_id: str, bot_id: str, enable_filter: bool = True) -> models.ClassificationResult:
         try: 
 
             # Classify with dspy
@@ -26,7 +26,7 @@ class ClassificationAgent() :
                 )
 
             logger.info("RAW CLASSIFICATION: %s", result)
-            logger.info("SHOULD RESPOND: %s", result.should_respond)
+            logger.info("SHOULD RESPOND: %s", result.should_respond if enable_filter else "FILTER DISABLED")
             logger.info("INTENT: %s", result.intent)
 
 
