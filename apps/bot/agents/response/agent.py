@@ -1,5 +1,6 @@
 
 import os
+from pprint import pprint
 from typing import Any, Awaitable, Callable
 import dspy
 
@@ -52,6 +53,9 @@ class ResponseAgent(BaseAgent):
                 context_summary = context_summary,
                 me = me,
             )
+
+        pprint(RESPONSE_LM.history[-1])
+
 
         print("DSPY RESULT:")
         print(result)

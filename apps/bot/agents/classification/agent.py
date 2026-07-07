@@ -2,6 +2,7 @@ import dspy
 from apps.llm_config import get_llm_model
 from logging import getLogger
 from apps.bot.agents.classification import models, signatures
+from pprint import pprint
 
 logger = getLogger(__name__)
 CLASSIFICATION_LM = get_llm_model()
@@ -9,6 +10,7 @@ CLASSIFICATION_LM = get_llm_model()
 class ClassificationAgent() :
     def __init__(self):
         self._classifier = dspy.Predict(signatures.ClassificationSignature)
+        self._filtering_classifier = dspy.Predict(signatures.FilteringClassificationSignature)
 
     def _estimate_token_usage(self, conversation_timeline: str) -> int:
         return len(conversation_timeline) // 4 + 100
@@ -17,16 +19,24 @@ class ClassificationAgent() :
     async def classify(self, conversation_timeline: str, trigger_message_id: str, bot_id: str, enable_filter: bool = True) -> models.ClassificationResult:
         try: 
 
+            # When the filter is disabled, should_respond is not a concept:
+            # use the signature without it and always respond.
+            classifier = self._filtering_classifier if enable_filter else self._classifier
+
             # Classify with dspy
             with dspy.context(lm=CLASSIFICATION_LM):
-                result = self._classifier(
+                result = classifier(
                     conversation_timeline = conversation_timeline,
                     trigger_message_id = trigger_message_id,
                     bot_id = bot_id
                 )
 
+            pprint(CLASSIFICATION_LM.history[-1])
+
+            should_respond = result.should_respond if enable_filter else True
+
             logger.info("RAW CLASSIFICATION: %s", result)
-            logger.info("SHOULD RESPOND: %s", result.should_respond if enable_filter else "FILTER DISABLED")
+            logger.info("SHOULD RESPOND: %s", should_respond if enable_filter else "FILTER DISABLED")
             logger.info("INTENT: %s", result.intent)
 
 
@@ -35,7 +45,7 @@ class ClassificationAgent() :
 
             # Package it nicely
             res = models.ClassificationResult(
-                should_respond=result.should_respond,
+                should_respond=should_respond,
                 intent=result.intent,
                 relevant_message_ids=result.relevant_message_ids,
                 context_summary=result.context_summary,

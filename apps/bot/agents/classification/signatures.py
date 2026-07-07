@@ -4,13 +4,9 @@ class ClassificationSignature(dspy.Signature):
 
     """
 
-    Analyze a conversation timeline and determine whether the bot should respond to the trigger message.
+    Analyze a conversation timeline to understand the trigger message.
 
     The trigger message is the message identified by trigger_message_id.
-
-    Respond only when the trigger message is directed at the bot and requires a response.
-
-    Do not respond when users are merely discussing the bot, mentioning the bot in passing, or when no response is needed.
 
     Identify the user's intent, the messages relevant to that intent, and summarize the relevant context.
 
@@ -28,15 +24,34 @@ class ClassificationSignature(dspy.Signature):
     )
 
     # Outputs
-    should_respond: bool = dspy.OutputField(
-        description="True if the message is directed AT the bot and requires a response, False if it's ABOUT the bot or doesn't need response"
-    )
     intent: str = dspy.OutputField(
-        description="1-2 sentence description of what the user is asking or wanting (empty if should_respond is False)"
+        description="1-2 sentence description of what the user is asking or wanting"
     )
     relevant_message_ids: list[str] = dspy.OutputField(
-        description="Comma-separated list of message IDs that are relevant to this request (from the timeline's [ID: ...] prefixes)"
+        description="Comma-separated list of message IDs that are relevant to this request (from the timeline's [id: ...] prefixes)"
     )
     context_summary: str = dspy.OutputField(
         description="2-3 sentence summary of the relevant conversation context"
+    )
+
+
+class FilteringClassificationSignature(ClassificationSignature):
+
+    """
+
+    Analyze a conversation timeline and determine whether the bot should respond to the trigger message.
+
+    The trigger message is the message identified by trigger_message_id.
+
+    Respond only when the trigger message is directed at the bot and requires a response.
+
+    Do not respond when users are merely discussing the bot, mentioning the bot in passing, or when no response is needed.
+
+    Identify the user's intent, the messages relevant to that intent, and summarize the relevant context.
+
+    """
+
+    # Outputs
+    should_respond: bool = dspy.OutputField(
+        description="True if the message is directed AT the bot and requires a response, False if it's ABOUT the bot or doesn't need response"
     )

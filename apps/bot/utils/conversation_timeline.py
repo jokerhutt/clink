@@ -37,16 +37,22 @@ class ConversationTimelineBuilder:
 
         relevant_set = set(relevant_ids)
         filtered_lines = []
+        keep_current = False
 
         for line in timeline.split("\n"):
-            if line.startswith("===") or not line.strip():
+            if line.strip().startswith("==="):
                 filtered_lines.append(line)
+                keep_current = False
                 continue
 
-            for msg_id in relevant_set:
-                if f"[id: {msg_id}]" in line:
+            if line.lstrip().startswith("[id: "):
+                keep_current = any(f"[id: {msg_id}]" in line for msg_id in relevant_set)
+                if keep_current:
                     filtered_lines.append(line)
-                    break
+                continue
+
+            if keep_current or not line.strip():
+                filtered_lines.append(line)
 
         return "\n".join(filtered_lines)
             
